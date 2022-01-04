@@ -1,10 +1,11 @@
-// ignore_for_file: prefer_const_constructors, deprecated_member_use
+// ignore_for_file: prefer_const_constructors, deprecated_member_use, non_constant_identifier_names, unused_element
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:sample/list_view.dart';
 import 'package:sample/list_view_demo.dart';
 import 'package:sample/signup.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 
@@ -20,6 +21,20 @@ class _LoginPageState extends State<LoginPage> {
   
   var emailController = TextEditingController();
   var passwordController = TextEditingController();
+
+  _LoginPageState(){
+    SharedPreferences.getInstance().then((value){
+      var loginStat = value.getBool("login");
+      print("Login status: ");
+      print(loginStat.toString());
+      if(loginStat != null && loginStat == true) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ListViewFirebaseDemo()),
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,12 +112,19 @@ class _LoginPageState extends State<LoginPage> {
                             FirebaseAuth.instance.signInWithEmailAndPassword(email: emailController.text, password: passwordController.text)
                             .then((value){
                               print("Logged in with email and password");
+                              SharedPreferences.getInstance().then((pref){
+                                pref.setBool("login", true);
+                              });
+
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(builder: (context) => const ListViewFirebaseDemo()),
                               );
                             })
                             .catchError((onError){
+                              SharedPreferences.getInstance().then((pref){
+                                pref.setBool("login", false);
+                              });
                               print("Failed to login!");
                               print(onError.toString());
                             });

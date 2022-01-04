@@ -1,7 +1,10 @@
+// ignore_for_file: prefer_const_constructors, deprecated_member_use
+
 import 'dart:async';
 import 'dart:io';
 
 import 'package:camera/camera.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 
 Future<void> main() async {
@@ -99,7 +102,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
             final image = await _controller.takePicture();
 
             // If the picture was taken, display it on a new screen.
-            await Navigator.of(context).push(
+            final result = await Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => DisplayPictureScreen(
                   // Pass the automatically generated path to
@@ -108,6 +111,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
                 ),
               ),
             );
+            Navigator.pop(context, result);
           } catch (e) {
             // If an error occurs, log the error to the console.
             print(e);
@@ -136,6 +140,21 @@ class DisplayPictureScreen extends StatelessWidget {
         children: [
           Image.file(File(imagePath)),
           Text(imagePath),
+          RaisedButton(
+            onPressed: (){
+              var fileToUpload = File(imagePath);
+              var fileName = "profile-"+ DateTime.now().millisecondsSinceEpoch.toString();
+              FirebaseStorage.instance.ref().child("profile/"+ fileName).putFile(fileToUpload).whenComplete((){
+                FirebaseStorage.instance.ref().child("profile/"+ fileName).getDownloadURL().then((value){
+                  print("URL: " + value.toString());
+                  Navigator.pop(context, value.toString());
+                }).catchError((error){
+                  print("Failed to get to image!");
+                });
+              });
+            },
+            child: Text('Upload'),
+          )
         ],
       ),
     );

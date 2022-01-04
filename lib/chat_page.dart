@@ -2,8 +2,10 @@
 
 import 'dart:collection';
 
+import 'package:camera/camera.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:sample/take_picture.dart';
 import 'package:sample/user_profile.dart';
 
 
@@ -37,10 +39,6 @@ class _ChatPageState extends State<ChatPage> {
     refreshChat();
   }
 
-
-  _ChatPageState(){
-    
-  }
 
   void updateMessageBox(){
     FirebaseDatabase.instance.reference().child("message/" + firebaseMessageRoot).onChildChanged.listen((event) {
@@ -100,12 +98,14 @@ class _ChatPageState extends State<ChatPage> {
                               color: Colors.grey,
                               borderRadius: BorderRadius.all(Radius.circular(5)),
                             ),
-                            child: Text(
-                              messageList[index]["text"],
-                              style: TextStyle(
-                                fontSize: 15,
-                              )
-                            ),
+                            child: messageList[index]['type'] != null && messageList[index]['type'] == "image" ? 
+                              Image.network(messageList[index]['text']):
+                              Text(
+                                messageList[index]["text"],
+                                style: TextStyle(
+                                  fontSize: 15,
+                                )
+                              ),
                           ),
                           Text("Sent at: " + DateTime.fromMillisecondsSinceEpoch(messageList[index]["timestamp"]).toString(),),
                         ],
@@ -172,12 +172,41 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                   ),
                   IconButton(
+                    onPressed: () async {
+                      final cameras = await availableCameras();
+                      final firstCamera = cameras.first;
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => TakePictureScreen(camera: firstCamera)),  
+                      );
+                      var timestamp = DateTime.now().microsecondsSinceEpoch;
+                      var messageRecord = {
+                        "text": result,
+                        "type" : "image",
+                        "timestamp" : timestamp,
+                        "uid": UserProfile.currentUser["uid"]
+                      };       
+                      FirebaseDatabase.instance.reference().child("message/" + firebaseMessageRoot+"/"+ timestamp.toString())
+                        .set(messageRecord)
+                        .then((value){
+                          print("Message sended");
+                          messageController.text = "";
+                        }).catchError((error){
+                          print("Error: " + error.toString());
+                          messageController.text = "";
+                        });  
+                        updateMessageBox();
+                  },
+                    icon: Icon(Icons.photo)
+                  ),
+                  IconButton(
                     icon: Icon(Icons.send), 
                     onPressed: () {
                       scrollController.jumpTo(scrollController.position.maxScrollExtent);
                       var timestamp = DateTime.now().microsecondsSinceEpoch;
                       var messageRecord = {
                         "text": messageController.text,
+                        "type": "text",
                         "timestamp" : timestamp,
                         "uid": UserProfile.currentUser["uid"]
                       };       

@@ -46,10 +46,20 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   print("object");
                   final cameras = await availableCameras();
                   final firstCamera = cameras.first;
-                  Navigator.push(
+                  final result = await Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => TakePictureScreen(camera: firstCamera)),  
                   );
+                  userProfile["image"] = result;
+                  setState(() {
+                    FirebaseDatabase.instance.reference().child("friends/" + userProfile["uid"]).set(userProfile)
+                    .then((value){
+                      print("Updated the profile image");
+                    })
+                    .catchError((error){
+                      print("Failed to update profile image");
+                    });
+                  });
                 },
                 child: CircleAvatar(
                   backgroundImage: NetworkImage(userProfile["image"] == null ? "https://www.kindpng.com/picc/m/495-4952535_create-digital-profile-icon-blue-user-profile-icon.png" :userProfile["image"]),
